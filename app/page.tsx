@@ -373,10 +373,10 @@ export default function CalendarApp() {
             <div className="flex items-center gap-4">
               <button
                 onClick={goToToday}
-                className={`px-4 py-2 rounded-md transition-colors text-sm ${
+                className={`px-4 py-2 rounded-md transition-colors text-sm font-medium shadow-sm ${
                   isToday()
                     ? "bg-accent-primary accent-foreground"
-                    : "bg-white/10 text-white hover:bg-white/20"
+                    : "bg-white/10 text-white hover:bg-white/20 border border-white/10"
                 }`}
               >
                 {t.today}
@@ -434,13 +434,25 @@ export default function CalendarApp() {
 
           {/* Calendar Views */}
           {currentView === "week" && (
-            <WeekView onEventClick={handleEventClick} onSlotClick={handleSlotClick} />
+            <WeekView 
+              onEventClick={handleEventClick} 
+              onSlotClick={handleSlotClick} 
+              onSlotDoubleClick={handleSlotClick}
+            />
           )}
           {currentView === "day" && (
-            <DayView onEventClick={handleEventClick} onSlotClick={handleSlotClick} />
+            <DayView 
+              onEventClick={handleEventClick} 
+              onSlotClick={handleSlotClick} 
+              onSlotDoubleClick={handleSlotClick}
+            />
           )}
           {currentView === "month" && (
-            <MonthView onEventClick={handleEventClick} onDayClick={handleDayClick} />
+            <MonthView 
+              onEventClick={handleEventClick} 
+              onDayClick={handleDayClick} 
+              onDayDoubleClick={(date) => handleSlotClick(date, "09:00")}
+            />
           )}
         </div>
 
@@ -499,6 +511,7 @@ export default function CalendarApp() {
         onOpenChange={setEventDialogOpen}
         event={selectedEvent}
         defaultDate={defaultEventDate}
+        defaultTime={defaultEventTime}
       />
 
       <FolderDialog

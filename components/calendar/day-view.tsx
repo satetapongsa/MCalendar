@@ -9,9 +9,10 @@ import { EmptyState } from "@/components/ui/empty-state"
 interface DayViewProps {
   onEventClick: (event: CalendarEvent) => void
   onSlotClick: (date: Date, time: string) => void
+  onSlotDoubleClick: (date: Date, time: string) => void
 }
 
-export function DayView({ onEventClick, onSlotClick }: DayViewProps) {
+export function DayView({ onEventClick, onSlotClick, onSlotDoubleClick }: DayViewProps) {
   const { selectedDate, events, selectedFolderId, settings } = useCalendarStore()
 
   const timeSlots = Array.from({ length: 16 }, (_, i) => i + 6) // 6 AM to 9 PM
@@ -71,12 +72,17 @@ export function DayView({ onEventClick, onSlotClick }: DayViewProps) {
     onSlotClick(selectedDate, time)
   }
 
+  const handleSlotDoubleClick = (hour: number) => {
+    const time = `${hour.toString().padStart(2, "0")}:00`
+    onSlotDoubleClick(selectedDate, time)
+  }
+
   return (
     <div className="flex-1 overflow-auto p-4">
       <div className="bg-white/20 backdrop-blur-lg rounded-xl border border-white/20 shadow-xl min-h-full">
         {/* Day Header */}
         <div className="p-4 border-b border-white/20 sticky top-0 bg-white/10 backdrop-blur-lg z-10 rounded-t-xl">
-          <h2 className="text-xl font-semibold text-white text-center">
+          <h2 className="text-2xl font-bold text-white text-center drop-shadow-md">
             {formatDate(selectedDate)}
           </h2>
           {/* Event color summary */}
@@ -96,7 +102,10 @@ export function DayView({ onEventClick, onSlotClick }: DayViewProps) {
 
         {/* Time Grid / Empty State */}
         {dayEvents.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center min-h-[500px]">
+          <div 
+            className="flex-1 flex items-center justify-center min-h-[500px] cursor-pointer"
+            onDoubleClick={() => handleSlotDoubleClick(9)}
+          >
             <EmptyState />
           </div>
         ) : (
@@ -120,6 +129,7 @@ export function DayView({ onEventClick, onSlotClick }: DayViewProps) {
                   key={timeIndex}
                   className="h-20 border-b border-white/10 hover:bg-white/5 cursor-pointer transition-colors"
                   onClick={() => handleSlotClick(hour)}
+                  onDoubleClick={() => handleSlotDoubleClick(hour)}
                 />
               ))}
 

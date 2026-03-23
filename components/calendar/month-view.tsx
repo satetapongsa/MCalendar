@@ -9,9 +9,10 @@ import { MapPin } from "lucide-react"
 interface MonthViewProps {
   onEventClick: (event: CalendarEvent) => void
   onDayClick: (date: Date) => void
+  onDayDoubleClick: (date: Date) => void
 }
 
-export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
+export function MonthView({ onEventClick, onDayClick, onDayDoubleClick }: MonthViewProps) {
   const { selectedDate, events, selectedFolderId, setSelectedDate, setCurrentView, settings } =
     useCalendarStore()
 
@@ -127,7 +128,7 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
 
   const handleDayDoubleClick = (date: Date) => {
     setSelectedDate(date)
-    setCurrentView("day")
+    onDayDoubleClick(date)
   }
 
   return (
@@ -184,10 +185,10 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
                 {/* Day Number with Color Indicators */}
                 <div className="flex items-start justify-between">
                   <div
-                    className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${
+                    className={`text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full transition-all ${
                       isToday(day.date)
-                        ? "bg-accent-primary accent-foreground"
-                        : "text-white"
+                        ? "bg-accent-primary accent-foreground shadow-sm scale-110"
+                        : "text-white hover:bg-white/10"
                     }`}
                   >
                     {day.date.getDate()}

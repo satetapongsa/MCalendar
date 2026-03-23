@@ -9,9 +9,10 @@ import { MapPin } from "lucide-react"
 interface WeekViewProps {
   onEventClick: (event: CalendarEvent) => void
   onSlotClick: (date: Date, time: string) => void
+  onSlotDoubleClick: (date: Date, time: string) => void
 }
 
-export function WeekView({ onEventClick, onSlotClick }: WeekViewProps) {
+export function WeekView({ onEventClick, onSlotClick, onSlotDoubleClick }: WeekViewProps) {
   const { selectedDate, events, selectedFolderId, settings } = useCalendarStore()
 
   const timeSlots = Array.from({ length: 14 }, (_, i) => i + 6) // 6 AM to 7 PM
@@ -114,6 +115,12 @@ export function WeekView({ onEventClick, onSlotClick }: WeekViewProps) {
     onSlotClick(date, time)
   }
 
+  const handleSlotDoubleClick = (dayIndex: number, hour: number) => {
+    const date = weekDateObjects[dayIndex]
+    const time = `${hour.toString().padStart(2, "0")}:00`
+    onSlotDoubleClick(date, time)
+  }
+
   return (
     <div className="flex-1 overflow-auto p-4">
       <div className="bg-white/20 backdrop-blur-lg rounded-xl border border-white/20 shadow-xl min-h-full">
@@ -131,10 +138,10 @@ export function WeekView({ onEventClick, onSlotClick }: WeekViewProps) {
               <div key={i} className="p-2 text-center border-l border-white/20">
                 <div className="text-xs text-white/70 font-medium">{day}</div>
                 <div
-                  className={`text-lg font-medium mt-1 text-white ${
+                  className={`text-lg font-bold mt-1 transition-all ${
                     isToday(weekDateObjects[i])
-                      ? "bg-accent-primary accent-foreground rounded-full w-8 h-8 flex items-center justify-center mx-auto"
-                      : ""
+                      ? "bg-accent-primary accent-foreground rounded-full w-9 h-9 flex items-center justify-center mx-auto shadow-sm scale-110"
+                      : "text-white"
                   }`}
                 >
                   {weekDates[i]}
@@ -195,6 +202,7 @@ export function WeekView({ onEventClick, onSlotClick }: WeekViewProps) {
                   key={timeIndex}
                   className="h-[60px] border-b border-white/10 hover:bg-white/5 cursor-pointer transition-colors"
                   onClick={() => handleSlotClick(dayIndex, hour)}
+                  onDoubleClick={() => handleSlotDoubleClick(dayIndex, hour)}
                 />
               ))}
 

@@ -17,6 +17,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -26,14 +27,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { useCalendarStore, formatDateKey } from "@/lib/calendar-store"
-import { EVENT_COLORS, isCustomColor, type CalendarEvent } from "@/lib/types"
-import { Clock, MapPin, Users, Palette, FolderOpen, Trash2, Pipette, Check } from "lucide-react"
+import { EVENT_COLORS, isCustomColor, type CalendarEvent, type Folder } from "@/lib/types"
+import { Clock, MapPin, Users, Palette, FolderOpen, Trash2, Pipette, Check, Plus, Hash, X } from "lucide-react"
 
 interface EventDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   event?: CalendarEvent | null
   defaultDate?: Date
+  defaultTime?: string
 }
 
 export function EventDialog({
@@ -41,8 +43,9 @@ export function EventDialog({
   onOpenChange,
   event,
   defaultDate,
+  defaultTime,
 }: EventDialogProps) {
-  const { addEvent, updateEvent, deleteEvent, folders } = useCalendarStore()
+  const { addEvent, updateEvent, deleteEvent, folders, addFolder } = useCalendarStore()
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -57,6 +60,40 @@ export function EventDialog({
   const [attendees, setAttendees] = useState("")
   const [status, setStatus] = useState<'accepted' | 'declined' | 'tentative'>("accepted")
   const [colorPickerOpen, setColorPickerOpen] = useState(false)
+
+  // New folder states
+  const [isAddingFolder, setIsAddingFolder] = useState(false)
+  const [newFolderName, setNewFolderName] = useState("")
+  const [newFolderColor, setNewFolderColor] = useState("bg-accent-primary")
+
+  const handleCreateFolder = () => {
+    if (!newFolderName.trim()) return
+    
+    const id = `folder-${Date.now()}`
+    const newFolder: Omit<Folder, 'id' | 'createdAt'> = {
+      name: newFolderName.trim(),
+      color: newFolderColor
+    }
+    
+    // Using the store's addFolder which generates its own ID or we provide one
+    // But since the store's addFolder generates its own uuid, let's just add it 
+    // and then find the new one. Or we can just trust the store.
+    addFolder(newFolder)
+    
+    // A small hack: find the last folder added (which is the one we just added)
+    // Actually, in a real app we'd get the ID back, but here we'll just set it
+    // after the state updates. For now, let's just reset
+    setTimeout(() => {
+      const latestFolders = useCalendarStore.getState().folders
+      const createdFolder = latestFolders[latestFolders.length - 1]
+      if (createdFolder) {
+        setFolderId(createdFolder.id)
+      }
+    }, 50)
+
+    setIsAddingFolder(false)
+    setNewFolderName("")
+  }
 
   useEffect(() => {
     if (event) {
@@ -84,8 +121,17 @@ export function EventDialog({
       setTitle("")
       setDescription("")
       setDate(defaultDate ? formatDateKey(defaultDate) : formatDateKey(new Date()))
-      setStartTime("09:00")
-      setEndTime("10:00")
+      setStartTime(defaultTime || "09:00")
+      
+      // If we have a default time, set end time to 1 hour later
+      if (defaultTime) {
+        const hour = parseInt(defaultTime.split(':')[0])
+        const nextHour = (hour + 1).toString().padStart(2, '0')
+        setEndTime(`${nextHour}:00`)
+      } else {
+        setEndTime("10:00")
+      }
+      
       setLocation("")
       setColor("bg-accent-primary")
       setCustomColor("#3b82f6")
@@ -94,7 +140,7 @@ export function EventDialog({
       setAttendees("")
       setStatus("accepted")
     }
-  }, [event, defaultDate, open])
+  }, [event, open, defaultDate, defaultTime])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -203,21 +249,114 @@ export function EventDialog({
                 <FolderOpen className="h-4 w-4" />
                 Folder
               </Label>
-              <Select value={folderId} onValueChange={setFolderId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select folder" />
-                </SelectTrigger>
-                <SelectContent>
-                  {folders.map((folder) => (
-                    <SelectItem key={folder.id} value={folder.id}>
+              
+              {!isAddingFolder ? (
+                <Select 
+                  value={folderId} 
+                  onValueChange={(val) => {
+                    if (val === "___new___") {
+                      setIsAddingFolder(true)
+                    } else {
+                      setFolderId(val)
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select folder" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {folders.map((folder) => (
+                      <SelectItem key={folder.id} value={folder.id}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-sm ${folder.color}`} />
+                          {folder.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                    <SelectSeparator />
+                    <SelectItem value="___new___" className="text-accent-primary font-medium">
                       <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-sm ${folder.color}`} />
-                        {folder.name}
+                        <Plus className="h-4 w-4" />
+                        Create New Folder
                       </div>
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="relative flex-1">
+                    <Input
+                      placeholder="Folder name..."
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      className="pr-10"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleCreateFolder()
+                        }
+                      }}
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button 
+                          type="button"
+                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md border border-gray-200 shadow-sm ${newFolderColor}`}
+                        />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[340px] p-4 bg-white/98 backdrop-blur-xl border-gray-200 shadow-2xl" align="end">
+                        <div className="space-y-4">
+                          <h4 className="text-xs font-bold text-gray-400 gap-2 flex items-center justify-between uppercase tracking-widest px-1">
+                            Color Palette
+                            <span className="text-[9px] font-normal lowercase opacity-70">swipe to see more</span>
+                          </h4>
+                          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide py-2 px-1 cursor-grab active:cursor-grabbing snap-x select-none">
+                            {EVENT_COLORS.slice(0, 16).map((c) => (
+                              <button
+                                key={c.value}
+                                type="button"
+                                onClick={() => setNewFolderColor(c.value)}
+                                className={`flex-shrink-0 w-10 h-10 rounded-xl ${c.value} transition-all border-2 flex items-center justify-center hover:scale-105 active:scale-95 shadow-sm snap-center ${
+                                  newFolderColor === c.value 
+                                    ? "border-gray-900 ring-4 ring-gray-900/10 scale-105" 
+                                    : "border-transparent hover:border-gray-200"
+                                }`}
+                                title={c.name}
+                              >
+                                {newFolderColor === c.value && (
+                                  <div className="w-2.5 h-2.5 rounded-full bg-white shadow-md animate-in zoom-in-50 duration-200" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <Button 
+                    type="button" 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-10 w-10 text-green-600 hover:text-green-700 hover:bg-green-50"
+                    onClick={handleCreateFolder}
+                  >
+                    <Check className="h-5 w-5" />
+                  </Button>
+                  <Button 
+                    type="button" 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-10 w-10 text-red-500 hover:text-red-600 hover:bg-red-50"
+                    onClick={() => {
+                      setIsAddingFolder(false)
+                      setNewFolderName("")
+                    }}
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 

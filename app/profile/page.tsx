@@ -51,6 +51,7 @@ const defaultProfile: UserProfile = {
 
 export default function ProfilePage() {
   const [isLoaded, setIsLoaded] = useState(false)
+  const [hasMounted, setHasMounted] = useState(false)
   const [profile, setProfile] = useState<UserProfile>(defaultProfile)
   const [isEditing, setIsEditing] = useState(false)
   const [editedProfile, setEditedProfile] = useState<UserProfile>(defaultProfile)
@@ -59,6 +60,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     setIsLoaded(true)
+    setHasMounted(true)
     // Load profile from localStorage
     const savedProfile = localStorage.getItem("calendar-profile")
     if (savedProfile) {
@@ -67,6 +69,8 @@ export default function ProfilePage() {
       setEditedProfile(parsed)
     }
   }, [])
+
+  if (!hasMounted) return null
 
   const handleSave = () => {
     try {
@@ -291,28 +295,28 @@ export default function ProfilePage() {
                     <Input
                       value={editedProfile.name}
                       onChange={(e) => setEditedProfile({ ...editedProfile, name: e.target.value })}
-                      className="text-2xl font-bold bg-white/20 border-white/30 text-white placeholder:text-white/70 mb-2"
+                      className="text-2xl font-bold bg-white/20 border-white/30 text-white placeholder:white/70 mb-2"
                       placeholder="Your Name"
                     />
                   ) : (
-                    <h1 className="text-3xl font-bold text-white mb-2">{profile.name}</h1>
+                    <h1 className="text-3xl font-bold accent-foreground mb-2">{profile.name}</h1>
                   )}
                   {isEditing ? (
                     <Input
                       value={editedProfile.occupation}
                       onChange={(e) => setEditedProfile({ ...editedProfile, occupation: e.target.value })}
-                      className="bg-white/20 border-white/30 text-white placeholder:text-white/70"
+                      className="bg-white/20 border-white/30 text-white placeholder:white/70"
                       placeholder="Your Occupation"
                     />
                   ) : (
                     profile.occupation && (
-                      <p className="text-lg text-white/90 flex items-center gap-2 justify-center md:justify-start">
+                      <p className="text-lg accent-foreground/90 flex items-center gap-2 justify-center md:justify-start">
                         <Briefcase className="h-4 w-4" />
                         {profile.occupation}
                       </p>
                     )
                   )}
-                  <p className="text-sm text-white/70 mt-2 flex items-center gap-2 justify-center md:justify-start">
+                  <p className="text-sm accent-foreground/70 mt-2 flex items-center gap-2 justify-center md:justify-start">
                     <Calendar className="h-4 w-4" />
                     Member since {formatDate(profile.joinDate)}
                   </p>
@@ -321,12 +325,12 @@ export default function ProfilePage() {
                 {/* Quick Stats */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white/20 rounded-xl p-4 text-center">
-                    <div className="text-2xl font-bold text-white">{stats.totalEvents}</div>
-                    <div className="text-xs text-white/80">Events</div>
+                    <div className="text-2xl font-bold accent-foreground">{stats.totalEvents}</div>
+                    <div className="text-xs accent-foreground/80">Events</div>
                   </div>
                   <div className="bg-white/20 rounded-xl p-4 text-center">
-                    <div className="text-2xl font-bold text-white">{stats.totalFolders}</div>
-                    <div className="text-xs text-white/80">Folders</div>
+                    <div className="text-2xl font-bold accent-foreground">{stats.totalFolders}</div>
+                    <div className="text-xs accent-foreground/80">Folders</div>
                   </div>
                 </div>
               </div>
