@@ -180,7 +180,7 @@ export const useCalendarStore = create<CalendarState>()(
       currentView: 'month',
       selectedFolderId: null,
       sidebarOpen: true,
-      backgroundImage: '/wallpaper/ดาวน์โหลด.jpg',
+      backgroundImage: '/wallpaper/default_bg.jpg',
       settings: defaultSettings,
       
       // Settings actions
