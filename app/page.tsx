@@ -12,6 +12,8 @@ import {
   Sparkles,
   X,
   Pause,
+  User,
+  Bell,
 } from "lucide-react"
 import { useCalendarStore, formatDateKey } from "@/lib/calendar-store"
 import type { CalendarEvent, Folder } from "@/lib/types"
@@ -30,6 +32,7 @@ export default function CalendarApp() {
   const [typedText, setTypedText] = useState("")
   const [isPlaying, setIsPlaying] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [showNotifications, setShowNotifications] = useState(false)
 
   // Dialog states
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
@@ -52,37 +55,13 @@ export default function CalendarApp() {
     sidebarOpen,
     setSidebarOpen,
     events,
+    backgroundImage,
+    settings,
   } = useCalendarStore()
 
   useEffect(() => {
     setIsLoaded(true)
-
-    // Show AI popup after 3 seconds
-    const popupTimer = setTimeout(() => {
-      setShowAIPopup(true)
-    }, 3000)
-
-    return () => clearTimeout(popupTimer)
   }, [])
-
-  useEffect(() => {
-    if (showAIPopup) {
-      const text =
-        "Looks like you don't have that many meetings today. Shall I play some Hans Zimmer essentials to help you get into your Flow State?"
-      let i = 0
-      setTypedText("")
-      const typingInterval = setInterval(() => {
-        if (i < text.length) {
-          setTypedText((prev) => prev + text.charAt(i))
-          i++
-        } else {
-          clearInterval(typingInterval)
-        }
-      }, 30)
-
-      return () => clearInterval(typingInterval)
-    }
-  }, [showAIPopup])
 
   const formatDateHeader = () => {
     const months = [
@@ -149,6 +128,111 @@ export default function CalendarApp() {
     e.location.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const getActiveNotifications = () => {
+    if (!settings.notifications) return []
+    const now = new Date()
+    return events.filter(e => {
+      const eventDateStr = e.startTime ? `${e.date}T${e.startTime}:00` : `${e.date}T00:00:00`
+      const eventDate = new Date(eventDateStr)
+      if (eventDate < now) return false // past event
+      
+      const diffMs = eventDate.getTime() - now.getTime()
+      const diffHours = diffMs / (1000 * 60 * 60)
+      
+      if (settings.reminderLeadTime === "1h") return diffHours <= 1
+      if (settings.reminderLeadTime === "1d") return diffHours <= 24
+      if (settings.reminderLeadTime === "1w") return diffHours <= 168
+      if (settings.reminderLeadTime === "at") return diffHours <= 0.5 // show up to 30 mins before
+      
+      return false
+    }).sort((a,b) => {
+      const dateA = new Date(a.startTime ? `${a.date}T${a.startTime}:00` : `${a.date}T00:00:00`)
+      const dateB = new Date(b.startTime ? `${b.date}T${b.startTime}:00` : `${b.date}T00:00:00`)
+      return dateA.getTime() - dateB.getTime()
+    })
+  }
+
+  const activeNotifications = getActiveNotifications()
+  const [sentNotifications, setSentNotifications] = useState<string[]>([])
+
+  // Notification logic
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission()
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (settings.notifications && activeNotifications.length > 0) {
+      activeNotifications.forEach(event => {
+        if (!sentNotifications.includes(event.id)) {
+          // Send Browser Notification
+          if ("Notification" in window && Notification.permission === "granted") {
+            try {
+              new Notification(`Reminder: ${event.title}`, {
+                body: `${event.startTime} - ${event.location || 'No location'}`,
+                icon: '/favicon.ico'
+              })
+            } catch (err) {
+              console.error("Browser notification failed:", err)
+            }
+          }
+          
+          setSentNotifications(prev => [...prev, event.id])
+        }
+      })
+    }
+  }, [activeNotifications, settings.notifications, sentNotifications])
+
+  // Localization
+  const translations: Record<string, any> = {
+    th: {
+      today: "วันนี้",
+      day: "วัน",
+      week: "สัปดาห์",
+      month: "เดือน",
+      settings: "ตั้งค่า",
+      search: "ค้นหาเหตุการณ์...",
+      noNotifications: "ไม่มีการแจ้งเตือนใหม่",
+      notifications: "การแจ้งเตือน",
+    },
+    en: {
+      today: "Today",
+      day: "Day",
+      week: "Week",
+      month: "Month",
+      settings: "Settings",
+      search: "Search events...",
+      noNotifications: "No new notifications",
+      notifications: "Notifications",
+    },
+    ja: {
+      today: "今日",
+      day: "日",
+      week: "週",
+      month: "月",
+      settings: "設定",
+      search: "イベントを検索...",
+      noNotifications: "新しい通知はありません",
+      notifications: "通知",
+    },
+    zh: {
+      today: "今天",
+      day: "天",
+      week: "周",
+      month: "月",
+      settings: "设置",
+      search: "搜索事件...",
+      noNotifications: "没有新通知",
+      notifications: "通知",
+    }
+  }
+  
+  const lang = settings.language || 'en'
+  const t = translations[lang] || translations.en
+
   const isToday = () => {
     const today = new Date()
     return (
@@ -162,8 +246,8 @@ export default function CalendarApp() {
     <div className="relative min-h-screen w-full overflow-hidden">
       {/* Background Image */}
       <Image
-        src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070&auto=format&fit=crop"
-        alt="Beautiful mountain landscape"
+        src={backgroundImage}
+        alt="Customizable background"
         fill
         className="object-cover"
         priority
@@ -183,7 +267,14 @@ export default function CalendarApp() {
           >
             <Menu className="h-6 w-6 text-white" />
           </button>
-          <span className="text-2xl font-semibold text-white drop-shadow-lg">Calendar</span>
+          <Image
+            src="/logo.png"
+            alt="MCalendar Logo"
+            width={32}
+            height={32}
+            className="rounded-lg shadow-sm"
+          />
+          <span className="text-2xl font-semibold text-white drop-shadow-lg">MCalendar</span>
         </div>
 
         <div className="flex items-center gap-4">
@@ -191,11 +282,56 @@ export default function CalendarApp() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
             <input
               type="text"
-              placeholder="Search events..."
+              placeholder={t.search}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="rounded-full bg-white/10 backdrop-blur-sm pl-10 pr-4 py-2 text-white placeholder:text-white/70 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 w-64"
+              className="rounded-full bg-white/10 backdrop-blur-sm pl-10 pr-4 py-2 text-white placeholder:text-white/70 border border-white/20 focus:outline-none focus:ring-2 focus:ring-accent-primary w-64 text-sm"
             />
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="p-2 rounded-lg hover:bg-white/10 transition-colors relative"
+            >
+              <Bell className="h-6 w-6 text-white drop-shadow-md" />
+              {activeNotifications.length > 0 && (
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white" />
+              )}
+            </button>
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-80 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-100 p-2 z-50 text-gray-800">
+                <div className="flex items-center justify-between p-2 border-b">
+                  <h3 className="text-sm font-semibold">{t.notifications}</h3>
+                  <button onClick={() => setShowNotifications(false)}>
+                    <X className="h-4 w-4 text-gray-500 hover:text-gray-800" />
+                  </button>
+                </div>
+                <div className="max-h-[60vh] overflow-auto mt-2">
+                  {activeNotifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500 text-sm">{t.noNotifications}</div>
+                  ) : (
+                    activeNotifications.map(event => (
+                      <button
+                        key={event.id}
+                        onClick={() => {
+                          setShowNotifications(false)
+                          handleEventClick(event)
+                        }}
+                        className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-start gap-3 border-b border-gray-50 last:border-0"
+                      >
+                        <div className={`w-3 h-3 mt-1 rounded-full shrink-0 ${event.color === 'bg-blue-500' ? 'bg-accent-primary' : event.color}`} style={event.color.startsWith("#") ? { backgroundColor: event.color } : {}}/>
+                        <div>
+                          <div className="font-medium text-sm text-gray-800 line-clamp-1">{event.title}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {event.date} {event.startTime && `at ${event.startTime}`}
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <Link
             href="/settings"
@@ -204,8 +340,8 @@ export default function CalendarApp() {
             <Settings className="h-6 w-6 text-white drop-shadow-md" />
           </Link>
           <Link href="/profile">
-            <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold shadow-md hover:ring-2 hover:ring-white/50 transition-all">
-              U
+            <div className="h-10 w-10 rounded-full bg-accent-primary flex items-center justify-center accent-foreground shadow-md hover:ring-2 hover:ring-white/50 transition-all">
+              <User className="h-6 w-6" />
             </div>
           </Link>
         </div>
@@ -237,13 +373,13 @@ export default function CalendarApp() {
             <div className="flex items-center gap-4">
               <button
                 onClick={goToToday}
-                className={`px-4 py-2 rounded-md transition-colors ${
+                className={`px-4 py-2 rounded-md transition-colors text-sm ${
                   isToday()
-                    ? "bg-blue-500 text-white"
+                    ? "bg-accent-primary accent-foreground"
                     : "bg-white/10 text-white hover:bg-white/20"
                 }`}
               >
-                Today
+                {t.today}
               </button>
               <div className="flex">
                 <button
@@ -271,7 +407,7 @@ export default function CalendarApp() {
                     : "text-white/70 hover:text-white"
                 } text-sm font-medium`}
               >
-                Day
+                {t.day}
               </button>
               <button
                 onClick={() => setCurrentView("week")}
@@ -281,7 +417,7 @@ export default function CalendarApp() {
                     : "text-white/70 hover:text-white"
                 } text-sm font-medium`}
               >
-                Week
+                {t.week}
               </button>
               <button
                 onClick={() => setCurrentView("month")}
@@ -291,7 +427,7 @@ export default function CalendarApp() {
                     : "text-white/70 hover:text-white"
                 } text-sm font-medium`}
               >
-                Month
+                {t.month}
               </button>
             </div>
           </div>
@@ -308,52 +444,7 @@ export default function CalendarApp() {
           )}
         </div>
 
-        {/* AI Popup */}
-        {showAIPopup && (
-          <div className="fixed bottom-8 right-8 z-20">
-            <div className="w-[450px] relative bg-gradient-to-br from-blue-400/30 via-blue-500/30 to-blue-600/30 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-blue-300/30 text-white">
-              <button
-                onClick={() => setShowAIPopup(false)}
-                className="absolute top-2 right-2 text-white/70 hover:text-white transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-              <div className="flex gap-3">
-                <div className="flex-shrink-0">
-                  <Sparkles className="h-5 w-5 text-blue-300" />
-                </div>
-                <div className="min-h-[80px]">
-                  <p className="text-base font-light">{typedText}</p>
-                </div>
-              </div>
-              <div className="mt-6 flex gap-3">
-                <button
-                  onClick={togglePlay}
-                  className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm transition-colors font-medium"
-                >
-                  Yes
-                </button>
-                <button
-                  onClick={() => setShowAIPopup(false)}
-                  className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm transition-colors font-medium"
-                >
-                  No
-                </button>
-              </div>
-              {isPlaying && (
-                <div className="mt-4 flex items-center justify-between">
-                  <button
-                    className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-white text-sm hover:bg-white/20 transition-colors"
-                    onClick={togglePlay}
-                  >
-                    <Pause className="h-4 w-4" />
-                    <span>Pause Hans Zimmer</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {/* AI Popup Removed */}
 
         {/* Search Results Overlay */}
         {searchQuery && (

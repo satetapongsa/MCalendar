@@ -26,7 +26,7 @@ export function FolderDialog({ open, onOpenChange, folder }: FolderDialogProps) 
   const { addFolder, updateFolder, deleteFolder } = useCalendarStore()
 
   const [name, setName] = useState("")
-  const [color, setColor] = useState("bg-blue-500")
+  const [color, setColor] = useState("bg-accent-primary")
 
   useEffect(() => {
     if (folder) {
@@ -34,7 +34,7 @@ export function FolderDialog({ open, onOpenChange, folder }: FolderDialogProps) 
       setColor(folder.color)
     } else {
       setName("")
-      setColor("bg-blue-500")
+      setColor("bg-accent-primary")
     }
   }, [folder, open])
 
@@ -126,7 +126,7 @@ export function FolderDialog({ open, onOpenChange, folder }: FolderDialogProps) 
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white">
+            <Button type="submit" className="bg-accent-primary accent-foreground hover:opacity-90">
               {folder ? "Update Folder" : "Create Folder"}
             </Button>
           </DialogFooter>

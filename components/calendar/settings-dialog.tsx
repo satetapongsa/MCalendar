@@ -43,7 +43,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <h3 className="font-medium mb-3">Calendar Statistics</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gray-50 rounded-lg p-4">
-                <div className="text-2xl font-bold text-blue-600">{events.length}</div>
+                <div className="text-2xl font-bold text-accent-primary">{events.length}</div>
                 <div className="text-sm text-gray-500">Total Events</div>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">

@@ -19,65 +19,87 @@ import {
   VolumeX,
   Eye,
   EyeOff,
+  Plus,
+  Image as ImageIcon,
+  Upload,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
-import { useCalendarStore } from "@/lib/calendar-store"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
-interface Settings {
-  theme: "light" | "dark" | "system"
-  language: string
-  timezone: string
-  defaultView: "day" | "week" | "month"
-  weekStartsOn: "sunday" | "monday"
-  timeFormat: "12h" | "24h"
-  notifications: boolean
-  soundEnabled: boolean
-  showWeekNumbers: boolean
-  showDeclinedEvents: boolean
-}
+const backgrounds = [
+  "4k desktop wallpaper.jpg",
+  "AI generated Luxury office interior with panoramic window and city view_.jpg",
+  "Bureau de M_ Pendulum.jpg",
+  "Debbie Balboa.gif",
+  "Discovering an urban oasis where luxury meets sophistication.jpg",
+  "FOCUS.avif",
+  "LARGE OFFICE CORPORATE BACKGROUND ANIME STYLE.jpg",
+  "Skyline Splendor - with a mesmerizing view of the city skyline from my hotel room.jpg",
+  "game time.jpg",
+  "the-eternal-moonshine.gif",
+  "ดาวน์โหลด (1).avif",
+  "ดาวน์โหลด (1).jpg",
+  "ดาวน์โหลด (2).avif",
+  "ดาวน์โหลด (2).jpg",
+  "ดาวน์โหลด (3).avif",
+  "ดาวน์โหลด (3).jpg",
+  "ดาวน์โหลด (4).jpg",
+  "ดาวน์โหลด.avif",
+  "ดาวน์โหลด.jpg",
+]
 
-const defaultSettings: Settings = {
-  theme: "system",
-  language: "th",
-  timezone: "Asia/Bangkok",
-  defaultView: "month",
-  weekStartsOn: "sunday",
-  timeFormat: "24h",
-  notifications: true,
-  soundEnabled: true,
-  showWeekNumbers: false,
-  showDeclinedEvents: false,
-}
+import { useCalendarStore, type Settings } from "@/lib/calendar-store"
 
 export default function SettingsPage() {
   const [isLoaded, setIsLoaded] = useState(false)
-  const [settings, setSettings] = useState<Settings>(defaultSettings)
   const [saved, setSaved] = useState(false)
-  const { events, folders, setCurrentView } = useCalendarStore()
+  const [customUrl, setCustomUrl] = useState("")
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  
+  const { 
+    events, 
+    folders, 
+    setCurrentView, 
+    backgroundImage, 
+    setBackgroundImage,
+    settings,
+    updateSettings 
+  } = useCalendarStore()
+  
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setBackgroundImage(reader.result as string)
+        setIsDialogOpen(false)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
   useEffect(() => {
     setIsLoaded(true)
-    // Load settings from localStorage
-    const savedSettings = localStorage.getItem("calendar-settings")
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings))
-    }
   }, [])
 
   const handleSettingChange = <K extends keyof Settings>(key: K, value: Settings[K]) => {
-    const newSettings = { ...settings, [key]: value }
-    setSettings(newSettings)
-    localStorage.setItem("calendar-settings", JSON.stringify(newSettings))
+    updateSettings({ [key]: value })
     
-    // Apply default view if changed
     if (key === "defaultView") {
       setCurrentView(value as "day" | "week" | "month")
     }
     
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setTimeout(() => setSaved(false), 3000)
   }
 
   const handleClearAllData = () => {
@@ -107,8 +129,8 @@ export default function SettingsPage() {
     <div className="relative min-h-screen w-full overflow-hidden">
       {/* Background Image */}
       <Image
-        src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070&auto=format&fit=crop"
-        alt="Beautiful mountain landscape"
+        src={backgroundImage}
+        alt="Background"
         fill
         className="object-cover"
         priority
@@ -133,13 +155,13 @@ export default function SettingsPage() {
 
         <div className="flex items-center gap-4">
           {saved && (
-            <div className="flex items-center gap-2 bg-green-500/80 px-4 py-2 rounded-lg text-white">
+            <div className="flex items-center gap-2 px-4 py-2 text-white">
               <Check className="h-4 w-4" />
-              <span className="text-sm">Saved</span>
+              <span className="text-sm font-medium">Saved</span>
             </div>
           )}
           <Link href="/profile">
-            <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold shadow-md hover:ring-2 hover:ring-white/50 transition-all">
+            <div className="h-10 w-10 rounded-full bg-accent-primary flex items-center justify-center accent-foreground font-bold shadow-md hover:ring-2 hover:ring-white/50 transition-all">
               U
             </div>
           </Link>
@@ -149,12 +171,12 @@ export default function SettingsPage() {
       {/* Main Content */}
       <main className="relative min-h-screen w-full pt-24 pb-12 px-8">
         <div
-          className={`max-w-3xl mx-auto opacity-0 ${isLoaded ? "animate-fade-in" : ""}`}
+          className={`max-w-5xl w-full mx-auto opacity-0 ${isLoaded ? "animate-fade-in" : ""}`}
           style={{ animationDelay: "0.4s" }}
         >
-          <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl overflow-hidden">
+          <div className="bg-white/50 backdrop-blur-xl rounded-2xl shadow-xl overflow-hidden">
             {/* Statistics */}
-            <div className="p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+            <div className={`p-6 bg-accent-primary accent-foreground transition-all duration-500`}>
               <h2 className="text-lg font-semibold mb-4">Calendar Statistics</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white/20 rounded-xl p-4">
@@ -192,7 +214,7 @@ export default function SettingsPage() {
               {/* Appearance */}
               <section>
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <Palette className="h-5 w-5 text-blue-500" />
+                  <Palette className="h-5 w-5 text-accent-primary" />
                   Appearance
                 </h3>
                 <div className="space-y-4">
@@ -201,37 +223,120 @@ export default function SettingsPage() {
                       <div className="font-medium text-gray-700">Theme</div>
                       <div className="text-sm text-gray-500">Choose your preferred theme</div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleSettingChange("theme", "light")}
-                        className={`p-3 rounded-lg border-2 transition-all ${
-                          settings.theme === "light"
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <Sun className="h-5 w-5 text-yellow-500" />
-                      </button>
-                      <button
-                        onClick={() => handleSettingChange("theme", "dark")}
-                        className={`p-3 rounded-lg border-2 transition-all ${
-                          settings.theme === "dark"
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <Moon className="h-5 w-5 text-gray-700" />
-                      </button>
-                      <button
-                        onClick={() => handleSettingChange("theme", "system")}
-                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
-                          settings.theme === "system"
-                            ? "border-blue-500 bg-blue-50 text-blue-600"
-                            : "border-gray-200 hover:border-gray-300 text-gray-600"
-                        }`}
-                      >
-                        Auto
-                      </button>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { id: 'white', color: 'bg-white border-gray-200' },
+                        { id: 'blue', color: 'bg-accent-primary' },
+                        { id: 'orange', color: 'bg-orange-500' },
+                        { id: 'green', color: 'bg-green-500' },
+                        { id: 'yellow', color: 'bg-yellow-400' },
+                        { id: 'pink', color: 'bg-pink-500' },
+                        { id: 'purple', color: 'bg-purple-500' },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => handleSettingChange("accentColor", item.id as any)}
+                          className={`w-10 h-10 rounded-full border-4 transition-all hover:scale-110 ${item.color} ${
+                            settings.accentColor === item.id
+                              ? "border-white ring-2 ring-white/50 shadow-lg"
+                              : "border-transparent"
+                          }`}
+                          title={item.id.charAt(0).toUpperCase() + item.id.slice(1)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <Separator className="my-4" />
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-gray-700">Background Image</div>
+                        <div className="text-sm text-gray-500">Choose from gallery or use custom URL</div>
+                      </div>
+                      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="flex items-center gap-2">
+                            <ImageIcon className="h-4 w-4" />
+                            Select Background
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+                          <DialogHeader>
+                            <DialogTitle>Background Gallery</DialogTitle>
+                          </DialogHeader>
+                          
+                          <div className="flex-1 overflow-y-auto p-4">
+                            <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
+                              {/* Custom URL Button */}
+                              <div className="space-y-2 col-span-full mb-6 p-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                                <div className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 text-center justify-center">
+                                  <ImageIcon className="h-4 w-4" />
+                                  Add Custom Image URL
+                                </div>
+                                <div className="flex gap-2">
+                                  <Input 
+                                    placeholder="https://images.unsplash.com/..." 
+                                    value={customUrl}
+                                    onChange={(e) => setCustomUrl(e.target.value)}
+                                    className="flex-1 bg-white"
+                                  />
+                                  <Button 
+                                    onClick={() => {
+                                      if (customUrl) {
+                                        setBackgroundImage(customUrl)
+                                        setIsDialogOpen(false)
+                                      }
+                                    }}
+                                  >
+                                    Save
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Upload Button */}
+                              <label className="relative aspect-video rounded-lg overflow-hidden border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group">
+                                <Plus className="h-8 w-8 text-gray-400 group-hover:text-accent-primary" />
+                                <span className="text-xs text-gray-500 group-hover:text-accent-primary font-medium">Upload File</span>
+                                <input 
+                                  type="file" 
+                                  className="hidden" 
+                                  accept="image/*"
+                                  onChange={handleFileUpload}
+                                />
+                              </label>
+
+                              {backgrounds.map((bg) => (
+                                <button
+                                  key={bg}
+                                  onClick={() => {
+                                    setBackgroundImage(`/wallpaper/${bg}`)
+                                    setIsDialogOpen(false)
+                                  }}
+                                  className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${
+                                    backgroundImage === `/wallpaper/${bg}`
+                                      ? "border-blue-500 ring-4 ring-blue-500/20"
+                                      : "border-transparent hover:border-gray-300"
+                                  }`}
+                                >
+                                  <Image
+                                    src={`/wallpaper/${bg}`}
+                                    alt={bg}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                  {backgroundImage === `/wallpaper/${bg}` && (
+                                    <div className="absolute inset-0 bg-accent-primary/20 flex items-center justify-center">
+                                      <Check className="h-6 w-6 text-white" />
+                                    </div>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </div>
                 </div>
@@ -242,7 +347,7 @@ export default function SettingsPage() {
               {/* Calendar Settings */}
               <section>
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-blue-500" />
+                  <Calendar className="h-5 w-5 text-accent-primary" />
                   Calendar
                 </h3>
                 <div className="space-y-4">
@@ -254,7 +359,7 @@ export default function SettingsPage() {
                     <select
                       value={settings.defaultView}
                       onChange={(e) => handleSettingChange("defaultView", e.target.value as Settings["defaultView"])}
-                      className="px-4 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-4 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-accent-primary"
                     >
                       <option value="day">Day</option>
                       <option value="week">Week</option>
@@ -270,7 +375,7 @@ export default function SettingsPage() {
                     <select
                       value={settings.weekStartsOn}
                       onChange={(e) => handleSettingChange("weekStartsOn", e.target.value as Settings["weekStartsOn"])}
-                      className="px-4 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-4 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-accent-primary"
                     >
                       <option value="sunday">Sunday</option>
                       <option value="monday">Monday</option>
@@ -285,7 +390,7 @@ export default function SettingsPage() {
                     <select
                       value={settings.timeFormat}
                       onChange={(e) => handleSettingChange("timeFormat", e.target.value as Settings["timeFormat"])}
-                      className="px-4 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-4 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-accent-primary"
                     >
                       <option value="12h">12-hour (AM/PM)</option>
                       <option value="24h">24-hour</option>
@@ -327,7 +432,7 @@ export default function SettingsPage() {
               {/* Regional Settings */}
               <section>
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <Globe className="h-5 w-5 text-blue-500" />
+                  <Globe className="h-5 w-5 text-accent-primary" />
                   Regional
                 </h3>
                 <div className="space-y-4">
@@ -338,8 +443,8 @@ export default function SettingsPage() {
                     </div>
                     <select
                       value={settings.language}
-                      onChange={(e) => handleSettingChange("language", e.target.value)}
-                      className="px-4 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => handleSettingChange("language", e.target.value as any)}
+                      className="px-4 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-accent-primary"
                     >
                       {languages.map((lang) => (
                         <option key={lang.code} value={lang.code}>
@@ -357,7 +462,7 @@ export default function SettingsPage() {
                     <select
                       value={settings.timezone}
                       onChange={(e) => handleSettingChange("timezone", e.target.value)}
-                      className="px-4 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-4 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-accent-primary"
                     >
                       {timezones.map((tz) => (
                         <option key={tz.code} value={tz.code}>
@@ -374,7 +479,7 @@ export default function SettingsPage() {
               {/* Notifications */}
               <section>
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <Bell className="h-5 w-5 text-blue-500" />
+                  <Bell className="h-5 w-5 text-accent-primary" />
                   Notifications
                 </h3>
                 <div className="space-y-4">
@@ -392,23 +497,27 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {settings.soundEnabled ? (
-                        <Volume2 className="h-4 w-4 text-gray-500" />
-                      ) : (
-                        <VolumeX className="h-4 w-4 text-gray-500" />
-                      )}
-                      <div>
-                        <div className="font-medium text-gray-700">Sound Effects</div>
-                        <div className="text-sm text-gray-500">Play sounds for notifications</div>
+                  {settings.notifications && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-gray-500" />
+                        <div>
+                          <div className="font-medium text-gray-700">Reminder Time</div>
+                          <div className="text-sm text-gray-500">When to show notifications</div>
+                        </div>
                       </div>
+                      <select
+                        value={settings.reminderLeadTime || "1d"}
+                        onChange={(e) => handleSettingChange("reminderLeadTime" as any, e.target.value)}
+                        className="px-4 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-accent-primary"
+                      >
+                        <option value="1h">1 Hour Before</option>
+                        <option value="1d">1 Day Before</option>
+                        <option value="1w">1 Week Before</option>
+                        <option value="at">At time of event</option>
+                      </select>
                     </div>
-                    <Switch
-                      checked={settings.soundEnabled}
-                      onCheckedChange={(checked) => handleSettingChange("soundEnabled", checked)}
-                    />
-                  </div>
+                  )}
                 </div>
               </section>
 

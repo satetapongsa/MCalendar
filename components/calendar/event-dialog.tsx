@@ -50,11 +50,12 @@ export function EventDialog({
   const [startTime, setStartTime] = useState("09:00")
   const [endTime, setEndTime] = useState("10:00")
   const [location, setLocation] = useState("")
-  const [color, setColor] = useState("bg-blue-500")
+  const [color, setColor] = useState("bg-accent-primary")
   const [customColor, setCustomColor] = useState("#3b82f6")
   const [useCustomColor, setUseCustomColor] = useState(false)
   const [folderId, setFolderId] = useState<string>("default")
   const [attendees, setAttendees] = useState("")
+  const [status, setStatus] = useState<'accepted' | 'declined' | 'tentative'>("accepted")
   const [colorPickerOpen, setColorPickerOpen] = useState(false)
 
   useEffect(() => {
@@ -78,6 +79,7 @@ export function EventDialog({
       
       setFolderId(event.folderId || "default")
       setAttendees(event.attendees.join(", "))
+      setStatus(event.status || "accepted")
     } else {
       setTitle("")
       setDescription("")
@@ -85,11 +87,12 @@ export function EventDialog({
       setStartTime("09:00")
       setEndTime("10:00")
       setLocation("")
-      setColor("bg-blue-500")
+      setColor("bg-accent-primary")
       setCustomColor("#3b82f6")
       setUseCustomColor(false)
       setFolderId("default")
       setAttendees("")
+      setStatus("accepted")
     }
   }, [event, defaultDate, open])
 
@@ -111,6 +114,7 @@ export function EventDialog({
       folderId,
       attendees: attendees.split(",").map((a) => a.trim()).filter(Boolean),
       organizer: "You",
+      status,
     }
 
     if (event) {
@@ -240,17 +244,32 @@ export function EventDialog({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="location" className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Location
-            </Label>
-            <Input
-              id="location"
-              placeholder="Enter location..."
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="location" className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Location
+              </Label>
+              <Input
+                id="location"
+                placeholder="Enter location..."
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={status} onValueChange={(val: any) => setStatus(val)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="accepted">Accepted</SelectItem>
+                  <SelectItem value="declined">Declined</SelectItem>
+                  <SelectItem value="tentative">Tentative</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -409,7 +428,7 @@ export function EventDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white">
+            <Button type="submit" className="bg-accent-primary accent-foreground hover:opacity-90">
               {event ? "Update Event" : "Create Event"}
             </Button>
           </DialogFooter>

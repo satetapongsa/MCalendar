@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import React, { useMemo } from "react"
 import { useCalendarStore, formatDateKey } from "@/lib/calendar-store"
 import { isCustomColor } from "@/lib/types"
 import type { CalendarEvent } from "@/lib/types"
@@ -12,10 +12,19 @@ interface MonthViewProps {
 }
 
 export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
-  const { selectedDate, events, selectedFolderId, setSelectedDate, setCurrentView } =
+  const { selectedDate, events, selectedFolderId, setSelectedDate, setCurrentView, settings } =
     useCalendarStore()
 
-  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  const weekDays = settings.weekStartsOn === "monday" 
+    ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] 
+    : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+  const t = {
+    th: { more: "เพิ่มเติม" },
+    en: { more: "more" },
+    ja: { more: "さらに" },
+    zh: { more: "更多" }
+  }[settings.language || "en"]
 
   const { calendarDays, monthEvents } = useMemo(() => {
     const year = selectedDate.getFullYear()
@@ -23,7 +32,12 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
 
     // First day of the month
     const firstDay = new Date(year, month, 1)
-    const firstDayOfWeek = firstDay.getDay()
+    let firstDayOfWeek = firstDay.getDay()
+    
+    // Adjust for Monday start
+    if (settings.weekStartsOn === "monday") {
+      firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1
+    }
 
     // Last day of the month
     const lastDay = new Date(year, month + 1, 0)
@@ -120,7 +134,12 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
     <div className="flex-1 overflow-auto p-4">
       <div className="bg-white/20 backdrop-blur-lg rounded-xl border border-white/20 shadow-xl h-full flex flex-col">
         {/* Week Header */}
-        <div className="grid grid-cols-7 border-b border-white/20">
+        <div className={`grid ${settings.showWeekNumbers ? "grid-cols-[40px_repeat(7,1fr)]" : "grid-cols-7"} border-b border-white/20`}>
+          {settings.showWeekNumbers && (
+            <div className="p-3 text-center text-white/40 font-medium text-[10px] flex items-center justify-center border-r border-white/10 uppercase tracking-tight">
+              Wk
+            </div>
+          )}
           {weekDays.map((day, i) => (
             <div
               key={i}
@@ -132,27 +151,42 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
         </div>
 
         {/* Calendar Grid */}
-        <div className="flex-1 grid grid-cols-7 grid-rows-6">
+        <div className={`flex-1 grid ${settings.showWeekNumbers ? "grid-cols-[40px_repeat(7,1fr)]" : "grid-cols-7"} grid-rows-6`}>
           {calendarDays.map((day, i) => {
             const dayEvents = getEventsForDay(day.date)
             const colorIndicators = getDayColorIndicators(dayEvents)
             const maxVisibleEvents = 2
 
+            // Calculate week number if first day of the week
+            const showWeekNum = settings.showWeekNumbers && i % 7 === 0
+            
+            // Basic week number calculation
+            const getWeekNumber = (d: Date) => {
+              const firstDayOfYear = new Date(d.getFullYear(), 0, 1)
+              const pastDaysOfYear = (d.getTime() - firstDayOfYear.getTime()) / 86400000
+              return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7)
+            }
+
             return (
-              <div
-                key={i}
-                className={`border-b border-r border-white/10 p-1.5 hover:bg-white/5 cursor-pointer transition-colors min-h-[100px] relative group ${
-                  !day.isCurrentMonth ? "opacity-40" : ""
-                }`}
-                onClick={() => handleDayClick(day.date)}
-                onDoubleClick={() => handleDayDoubleClick(day.date)}
-              >
+              <React.Fragment key={i}>
+                {showWeekNum && (
+                  <div className="border-b border-r border-white/10 bg-white/5 flex items-center justify-center text-[10px] font-bold text-white/30 select-none">
+                    {getWeekNumber(day.date)}
+                  </div>
+                )}
+                <div
+                  className={`border-b border-r border-white/10 p-1.5 hover:bg-white/5 cursor-pointer transition-colors min-h-[100px] relative group ${
+                    !day.isCurrentMonth ? "opacity-40" : ""
+                  }`}
+                  onClick={() => handleDayClick(day.date)}
+                  onDoubleClick={() => handleDayDoubleClick(day.date)}
+                >
                 {/* Day Number with Color Indicators */}
                 <div className="flex items-start justify-between">
                   <div
                     className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${
                       isToday(day.date)
-                        ? "bg-blue-500 text-white"
+                        ? "bg-accent-primary accent-foreground"
                         : "text-white"
                     }`}
                   >
@@ -218,11 +252,12 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
                   ))}
                   {dayEvents.length > maxVisibleEvents && (
                     <div className="text-xs text-white/70 px-1.5 font-medium">
-                      +{dayEvents.length - maxVisibleEvents} more
+                      +{dayEvents.length - maxVisibleEvents} {t.more}
                     </div>
                   )}
                 </div>
-              </div>
+                </div>
+              </React.Fragment>
             )
           })}
         </div>

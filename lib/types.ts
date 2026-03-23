@@ -10,6 +10,7 @@ export interface CalendarEvent {
   folderId: string | null
   attendees: string[]
   organizer: string
+  status: 'accepted' | 'declined' | 'tentative'
   createdAt: string
   updatedAt: string
 }

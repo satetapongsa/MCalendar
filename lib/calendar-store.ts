@@ -4,6 +4,32 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { CalendarEvent, Folder } from './types'
 
+export interface Settings {
+  accentColor: 'blue' | 'orange' | 'green' | 'white' | 'yellow' | 'pink' | 'purple'
+  language: 'th' | 'en' | 'ja' | 'zh'
+  timezone: string
+  defaultView: 'day' | 'week' | 'month'
+  weekStartsOn: 'sunday' | 'monday'
+  timeFormat: '12h' | '24h'
+  notifications: boolean
+  reminderLeadTime: '1h' | '1d' | '1w' | 'at'
+  showWeekNumbers: boolean
+  showDeclinedEvents: boolean
+}
+
+const defaultSettings: Settings = {
+  accentColor: 'blue',
+  language: 'th',
+  timezone: 'Asia/Bangkok',
+  defaultView: 'month',
+  weekStartsOn: 'sunday',
+  timeFormat: '24h',
+  notifications: true,
+  reminderLeadTime: '1d',
+  showWeekNumbers: false,
+  showDeclinedEvents: false,
+}
+
 interface CalendarState {
   events: CalendarEvent[]
   folders: Folder[]
@@ -11,6 +37,11 @@ interface CalendarState {
   currentView: 'day' | 'week' | 'month'
   selectedFolderId: string | null
   sidebarOpen: boolean
+  backgroundImage: string
+  settings: Settings
+  
+  // Settings actions
+  updateSettings: (settings: Partial<Settings>) => void
   
   // Event actions
   addEvent: (event: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'>) => void
@@ -27,6 +58,7 @@ interface CalendarState {
   setCurrentView: (view: 'day' | 'week' | 'month') => void
   setSelectedFolderId: (id: string | null) => void
   setSidebarOpen: (open: boolean) => void
+  setBackgroundImage: (image: string) => void
   
   // Navigation helpers
   goToToday: () => void
@@ -46,11 +78,15 @@ const formatDateKey = (date: Date) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-const getWeekDates = (date: Date) => {
+const getWeekDates = (date: Date, weekStartsOn: 'sunday' | 'monday' = 'sunday') => {
+  const startDayOffset = weekStartsOn === 'monday' ? 1 : 0
   const day = date.getDay()
-  const diff = date.getDate() - day
+  const diff = date.getDate() - day + (day === 0 && startDayOffset === 1 ? -6 : startDayOffset)
+  // Fix for Sunday when week starts on Monday
+  const adjustedDiff = weekStartsOn === 'monday' ? (date.getDate() - (day === 0 ? 6 : day - 1)) : (date.getDate() - day)
+  
   const weekStart = new Date(date)
-  weekStart.setDate(diff)
+  weekStart.setDate(adjustedDiff)
   
   const dates: string[] = []
   for (let i = 0; i < 7; i++) {
@@ -97,6 +133,7 @@ const sampleEvents: CalendarEvent[] = [
     folderId: 'work',
     attendees: ['John Doe', 'Jane Smith'],
     organizer: 'You',
+    status: 'accepted',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -112,6 +149,7 @@ const sampleEvents: CalendarEvent[] = [
     folderId: 'personal',
     attendees: [],
     organizer: 'You',
+    status: 'accepted',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -127,6 +165,7 @@ const sampleEvents: CalendarEvent[] = [
     folderId: 'work',
     attendees: ['Team Alpha', 'Stakeholders'],
     organizer: 'Project Manager',
+    status: 'accepted',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -141,11 +180,19 @@ export const useCalendarStore = create<CalendarState>()(
       currentView: 'month',
       selectedFolderId: null,
       sidebarOpen: true,
+      backgroundImage: '/wallpaper/ดาวน์โหลด.jpg',
+      settings: defaultSettings,
+      
+      // Settings actions
+      updateSettings: (newSettings) => set((state) => ({ 
+        settings: { ...state.settings, ...newSettings } 
+      })),
       
       // Event actions
       addEvent: (eventData) => {
         const event: CalendarEvent = {
           ...eventData,
+          status: eventData.status || 'accepted',
           id: generateId(),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -201,6 +248,7 @@ export const useCalendarStore = create<CalendarState>()(
       setCurrentView: (view) => set({ currentView: view }),
       setSelectedFolderId: (id) => set({ selectedFolderId: id }),
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
+      setBackgroundImage: (image) => set({ backgroundImage: image }),
       
       // Navigation helpers
       goToToday: () => set({ selectedDate: new Date() }),
@@ -238,21 +286,37 @@ export const useCalendarStore = create<CalendarState>()(
       // Queries
       getEventsForDate: (date) => {
         const dateKey = formatDateKey(date)
-        return get().events.filter((event) => event.date === dateKey)
+        const { settings } = get()
+        return get().events.filter((event) => {
+          if (!settings.showDeclinedEvents && event.status === 'declined') return false
+          return event.date === dateKey
+        })
       },
       
       getEventsForWeek: (date) => {
-        const weekDates = getWeekDates(date)
-        return get().events.filter((event) => weekDates.includes(event.date))
+        const { settings } = get()
+        const weekDates = getWeekDates(date, settings.weekStartsOn)
+        return get().events.filter((event) => {
+          if (!settings.showDeclinedEvents && event.status === 'declined') return false
+          return weekDates.includes(event.date)
+        })
       },
       
       getEventsForMonth: (date) => {
+        const { settings } = get()
         const monthDates = getMonthDates(date)
-        return get().events.filter((event) => monthDates.includes(event.date))
+        return get().events.filter((event) => {
+          if (!settings.showDeclinedEvents && event.status === 'declined') return false
+          return monthDates.includes(event.date)
+        })
       },
       
       getEventsForFolder: (folderId) => {
-        return get().events.filter((event) => event.folderId === folderId)
+        const { settings } = get()
+        return get().events.filter((event) => {
+          if (!settings.showDeclinedEvents && event.status === 'declined') return false
+          return event.folderId === folderId
+        })
       },
     }),
     {
@@ -260,6 +324,8 @@ export const useCalendarStore = create<CalendarState>()(
       partialize: (state) => ({
         events: state.events,
         folders: state.folders,
+        backgroundImage: state.backgroundImage,
+        settings: state.settings,
       }),
     }
   )

@@ -17,11 +17,11 @@ interface EventDetailProps {
   onOpenChange: (open: boolean) => void
   onEdit: () => void
 }
-
 export function EventDetail({ event, open, onOpenChange, onEdit }: EventDetailProps) {
   const { deleteEvent, folders } = useCalendarStore()
 
   if (!event) return null
+
 
   const folder = folders.find((f) => f.id === event.folderId)
 

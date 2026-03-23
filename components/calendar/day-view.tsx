@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { useCalendarStore, formatDateKey } from "@/lib/calendar-store"
 import { isCustomColor } from "@/lib/types"
 import type { CalendarEvent } from "@/lib/types"
+import { EmptyState } from "@/components/ui/empty-state"
 
 interface DayViewProps {
   onEventClick: (event: CalendarEvent) => void
@@ -11,7 +12,7 @@ interface DayViewProps {
 }
 
 export function DayView({ onEventClick, onSlotClick }: DayViewProps) {
-  const { selectedDate, events, selectedFolderId } = useCalendarStore()
+  const { selectedDate, events, selectedFolderId, settings } = useCalendarStore()
 
   const timeSlots = Array.from({ length: 16 }, (_, i) => i + 6) // 6 AM to 9 PM
 
@@ -33,9 +34,22 @@ export function DayView({ onEventClick, onSlotClick }: DayViewProps) {
   }
 
   const formatDate = (date: Date) => {
-    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-    return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
+    return new Intl.DateTimeFormat(settings.language || 'en', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: settings.timezone
+    }).format(date)
+  }
+
+  const formatTimeLabel = (hour: number) => {
+    if (settings.timeFormat === '24h') {
+      return `${hour.toString().padStart(2, '0')}:00`
+    }
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    const displayHour = hour % 12 || 12
+    return `${displayHour} ${ampm}`
   }
 
   const getEventStyle = (color: string) => {
@@ -80,61 +94,67 @@ export function DayView({ onEventClick, onSlotClick }: DayViewProps) {
           )}
         </div>
 
-        {/* Time Grid */}
-        <div className="grid grid-cols-[80px_1fr]">
-          {/* Time Labels */}
-          <div className="text-white/70">
-            {timeSlots.map((time, i) => (
-              <div
-                key={i}
-                className="h-20 border-b border-white/10 pr-2 text-right text-sm flex items-start justify-end pt-2"
-              >
-                {time > 12 ? `${time - 12} PM` : time === 12 ? "12 PM" : `${time} AM`}
-              </div>
-            ))}
+        {/* Time Grid / Empty State */}
+        {dayEvents.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center min-h-[500px]">
+            <EmptyState />
           </div>
-
-          {/* Day Column */}
-          <div className="border-l border-white/20 relative">
-            {timeSlots.map((hour, timeIndex) => (
-              <div
-                key={timeIndex}
-                className="h-20 border-b border-white/10 hover:bg-white/5 cursor-pointer transition-colors"
-                onClick={() => handleSlotClick(hour)}
-              />
-            ))}
-
-            {/* Events */}
-            {dayEvents.map((event) => {
-              const eventStyle = calculateEventStyle(event.startTime, event.endTime)
-              return (
+        ) : (
+          <div className="grid grid-cols-[80px_1fr]">
+            {/* Time Labels */}
+            <div className="text-white/70">
+              {timeSlots.map((time, i) => (
                 <div
-                  key={event.id}
-                  className={`absolute rounded-md p-3 text-white shadow-md cursor-pointer transition-all duration-200 ease-in-out hover:translate-y-[-2px] hover:shadow-lg ${getEventClass(event.color)}`}
-                  style={{
-                    ...eventStyle,
-                    ...getEventStyle(event.color),
-                    left: "8px",
-                    right: "8px",
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onEventClick(event)
-                  }}
+                  key={i}
+                  className="h-20 border-b border-white/10 pr-2 text-right text-sm flex items-start justify-end pt-2"
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-white/80 flex-shrink-0" />
-                    <span className="font-semibold text-base">{event.title}</span>
-                  </div>
-                  <div className="opacity-90 text-sm mt-1">{`${event.startTime} - ${event.endTime}`}</div>
-                  {event.location && (
-                    <div className="opacity-80 text-xs mt-1">{event.location}</div>
-                  )}
+                  {formatTimeLabel(time)}
                 </div>
-              )
-            })}
+              ))}
+            </div>
+
+            {/* Day Column */}
+            <div className="border-l border-white/20 relative">
+              {timeSlots.map((hour, timeIndex) => (
+                <div
+                  key={timeIndex}
+                  className="h-20 border-b border-white/10 hover:bg-white/5 cursor-pointer transition-colors"
+                  onClick={() => handleSlotClick(hour)}
+                />
+              ))}
+
+              {/* Events */}
+              {dayEvents.map((event) => {
+                const eventStyle = calculateEventStyle(event.startTime, event.endTime)
+                return (
+                  <div
+                    key={event.id}
+                    className={`absolute rounded-md p-3 text-white shadow-md cursor-pointer transition-all duration-200 ease-in-out hover:translate-y-[-2px] hover:shadow-lg ${getEventClass(event.color)}`}
+                    style={{
+                      ...eventStyle,
+                      ...getEventStyle(event.color),
+                      left: "8px",
+                      right: "8px",
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onEventClick(event)
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-white/80 flex-shrink-0" />
+                      <span className="font-semibold text-base">{event.title}</span>
+                    </div>
+                    <div className="opacity-90 text-sm mt-1">{`${event.startTime} - ${event.endTime}`}</div>
+                    {event.location && (
+                      <div className="opacity-80 text-xs mt-1">{event.location}</div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

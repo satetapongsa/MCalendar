@@ -12,16 +12,31 @@ interface WeekViewProps {
 }
 
 export function WeekView({ onEventClick, onSlotClick }: WeekViewProps) {
-  const { selectedDate, events, selectedFolderId } = useCalendarStore()
+  const { selectedDate, events, selectedFolderId, settings } = useCalendarStore()
 
-  const weekDays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
   const timeSlots = Array.from({ length: 14 }, (_, i) => i + 6) // 6 AM to 7 PM
 
-  const { weekDates, weekDateObjects } = useMemo(() => {
+  const formatTimeLabel = (hour: number) => {
+    if (settings.timeFormat === '24h') {
+      return `${hour.toString().padStart(2, '0')}:00`
+    }
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    const displayHour = hour % 12 || 12
+    return `${displayHour} ${ampm}`
+  }
+
+  const { weekDates, weekDateObjects, localizedWeekDays } = useMemo(() => {
     const day = selectedDate.getDay()
-    const diff = selectedDate.getDate() - day
+    let diff = selectedDate.getDate() - day
+    
+    if (settings.weekStartsOn === 'monday') {
+      diff = selectedDate.getDate() - (day === 0 ? 6 : day - 1)
+    }
+    
     const weekStart = new Date(selectedDate)
     weekStart.setDate(diff)
+    weekStart.setHours(0, 0, 0, 0)
+
 
     const objects: Date[] = []
     const dates: number[] = []
@@ -33,8 +48,12 @@ export function WeekView({ onEventClick, onSlotClick }: WeekViewProps) {
       dates.push(d.getDate())
     }
 
-    return { weekDates: dates, weekDateObjects: objects }
-  }, [selectedDate])
+    const localizedDays = objects.map(d => 
+      new Intl.DateTimeFormat(settings.language || 'en', { weekday: 'short' }).format(d).toUpperCase()
+    )
+
+    return { weekDates: dates, weekDateObjects: objects, localizedWeekDays: localizedDays }
+  }, [selectedDate, settings.language, settings.weekStartsOn])
 
   const filteredEvents = useMemo(() => {
     let filtered = events
@@ -99,9 +118,14 @@ export function WeekView({ onEventClick, onSlotClick }: WeekViewProps) {
     <div className="flex-1 overflow-auto p-4">
       <div className="bg-white/20 backdrop-blur-lg rounded-xl border border-white/20 shadow-xl min-h-full">
         {/* Week Header */}
-        <div className="grid grid-cols-8 border-b border-white/20 sticky top-0 bg-white/10 backdrop-blur-lg z-10 rounded-t-xl">
+        <div className={`grid ${settings.showWeekNumbers ? "grid-cols-[40px_repeat(8,1fr)]" : "grid-cols-8"} border-b border-white/20 sticky top-0 bg-white/10 backdrop-blur-lg z-10 rounded-t-xl`}>
+          {settings.showWeekNumbers && (
+            <div className="p-2 text-center text-white/40 font-medium text-[10px] flex items-center justify-center border-r border-white/10 uppercase">
+              Wk
+            </div>
+          )}
           <div className="p-2 text-center text-white/50 text-xs" />
-          {weekDays.map((day, i) => {
+          {localizedWeekDays.map((day, i) => {
             const indicators = getDayEventIndicators(i)
             return (
               <div key={i} className="p-2 text-center border-l border-white/20">
@@ -109,7 +133,7 @@ export function WeekView({ onEventClick, onSlotClick }: WeekViewProps) {
                 <div
                   className={`text-lg font-medium mt-1 text-white ${
                     isToday(weekDateObjects[i])
-                      ? "bg-blue-500 rounded-full w-8 h-8 flex items-center justify-center mx-auto"
+                      ? "bg-accent-primary accent-foreground rounded-full w-8 h-8 flex items-center justify-center mx-auto"
                       : ""
                   }`}
                 >
@@ -139,12 +163,26 @@ export function WeekView({ onEventClick, onSlotClick }: WeekViewProps) {
         </div>
 
         {/* Time Grid */}
-        <div className="grid grid-cols-8">
+        <div className={`grid ${settings.showWeekNumbers ? "grid-cols-[40px_repeat(8,1fr)]" : "grid-cols-8"}`}>
+          {settings.showWeekNumbers && (
+            <div className="border-r border-white/10 bg-white/5 flex flex-col pt-1">
+              {timeSlots.map((_, i) => (
+                <div key={i} className="h-[60px] border-b border-white/10 flex items-start justify-center pt-1 text-[10px] font-bold text-white/20">
+                  {(() => {
+                    const d = weekDateObjects[0]
+                    const firstDayOfYear = new Date(d.getFullYear(), 0, 1)
+                    const pastDaysOfYear = (d.getTime() - firstDayOfYear.getTime()) / 86400000
+                    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7)
+                  })()}
+                </div>
+              ))}
+            </div>
+          )}
           {/* Time Labels */}
           <div className="text-white/70">
             {timeSlots.map((time, i) => (
               <div key={i} className="h-[60px] border-b border-white/10 pr-2 text-right text-xs flex items-start justify-end pt-1">
-                {time > 12 ? `${time - 12} PM` : time === 12 ? "12 PM" : `${time} AM`}
+                {formatTimeLabel(time)}
               </div>
             ))}
           </div>

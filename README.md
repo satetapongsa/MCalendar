@@ -1,35 +1,67 @@
-# calendar-app
+# MCalendar - Your Personal Schedule Assistant 📅✨
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+Welcome to **MCalendar**, a modern, premium, and feature-rich calendar application built with **Next.js 15**, **Tailwind CSS**, and **Zustand**. Designed for a seamless and delightful user experience, MCalendar combines aesthetic beauty with practical functionality.
 
-## Built with v0
+![MCalendar Mockup](https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&q=80&w=1200)
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+## 🌟 Key Features
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_PPeyCWekIZFaKY9au8CkD2xII7ix)
+### 🎨 Premium Personalization
+- **Dynamic Accent System**: Choose from a curated palette of accent colors (White, Blue, Orange, Green, Yellow, Pink, Purple). The entire UI—from icons to banners—adapts to your choice.
+- **Glassmorphism UI**: A sleek, translucent design that overlays your chosen wallpaper.
+- **Background Gallery**: Select from high-quality 16:9 wallpapers or set your own via URL or local upload.
 
-## Getting Started
+### 📅 Advanced Calendar Management
+- **Multiple Views**: Seamlessly switch between **Day**, **Week**, and **Month** views.
+- **Folder Organization**: Categorize your events into custom folders with distinct colors.
+- **Smart Search**: Quickly find any event by title, description, or location.
 
-First, run the development server:
+### 🔔 Smart Notifications
+- **Browser Notifications**: Receive native browser alerts for upcoming events.
+- **Notification Badge**: Visual alerts on the dashboard to keep you informed.
+- **Flexible Lead Times**: Set reminders 1 hour, 1 day, or 1 week before your event.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+### 👤 Detailed Profile & Analytics
+- **Personal Profile**: Manage your contact info, bio, and social links.
+- **Activity Feed**: Track your recent calendar changes and upcoming milestones.
+- **Storage Safety**: Automatic image compression ensures your profile picture never crashes the app.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Technology Stack
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand) with Persistence
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Components**: Radix UI / Shadcn UI
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠️ Getting Started
 
-## Learn More
+### Prerequisites
+- Node.js 18.x or later
+- npm or yarn
 
-To learn more, take a look at the following resources:
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/mcalendar.git
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+## 📂 Project Structure
+- `/app`: Pages and global layouts.
+- `/components`: Reusable UI components and calendar logic.
+- `/lib`: State management (Zustand) and type definitions.
+- `/public`: Static assets and default wallpapers.
 
-<a href="https://v0.app/chat/api/kiro/clone/satetapongsa/calendar-app" alt="Open in Kiro"><img src="https://pdgvvgmkdvyeydso.public.blob.vercel-storage.com/open%20in%20kiro.svg?sanitize=true" /></a>
+## 📝 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+Developed with ❤️ by **เวฟนิกก้า**

@@ -140,7 +140,7 @@ export function CalendarSidebar({
       {/* Create Event Button */}
       <button
         onClick={onCreateEvent}
-        className="mb-6 flex items-center justify-center gap-2 rounded-full bg-blue-500 hover:bg-blue-600 transition-colors px-4 py-3 text-white w-full shadow-lg"
+        className="mb-6 flex items-center justify-center gap-2 rounded-full bg-accent-primary hover:opacity-90 transition-all px-4 py-3 accent-foreground w-full shadow-lg"
       >
         <Plus className="h-5 w-5" />
         <span className="font-medium">Create</span>
@@ -182,7 +182,7 @@ export function CalendarSidebar({
                 disabled={!day.date}
                 className={`text-xs rounded-full w-7 h-7 flex items-center justify-center transition-colors relative ${
                   isSelectedDay(day.fullDate)
-                    ? "bg-blue-500 text-white"
+                    ? "bg-accent-primary accent-foreground"
                     : isToday(day.fullDate)
                     ? "bg-white/30 text-white"
                     : "text-white hover:bg-white/20"
@@ -227,7 +227,7 @@ export function CalendarSidebar({
               selectedFolderId === null ? "bg-white/20" : "hover:bg-white/10"
             }`}
           >
-            <div className="w-4 h-4 rounded-sm bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500" />
+            <div className="w-4 h-4 rounded-sm bg-accent-primary" />
             <span className="text-white text-sm flex-1 text-left">All Events</span>
             {selectedFolderId === null && (
               <Check className="h-4 w-4 text-white" />
@@ -274,9 +274,9 @@ export function CalendarSidebar({
       {/* Quick Add Button */}
       <button
         onClick={onCreateEvent}
-        className="mt-4 flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 transition-colors p-3 w-12 h-12 shadow-lg self-start"
+        className="mt-4 flex items-center justify-center rounded-full bg-accent-primary hover:opacity-90 transition-all p-3 w-12 h-12 shadow-lg self-start accent-foreground"
       >
-        <Plus className="h-6 w-6 text-white" />
+        <Plus className="h-6 w-6" />
       </button>
     </div>
   )

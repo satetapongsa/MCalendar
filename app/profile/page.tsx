@@ -38,15 +38,15 @@ interface UserProfile {
 }
 
 const defaultProfile: UserProfile = {
-  name: "User",
-  email: "user@example.com",
-  phone: "",
+  name: "เวฟนิกก้า",
+  email: "satetapongs@gmail.com",
+  phone: "+66866666666",
   location: "Bangkok, Thailand",
-  occupation: "",
+  occupation: "wave nigga",
   bio: "",
-  website: "",
+  website: "https://satetapong-portfolio.vercel.app/",
   avatar: "",
-  joinDate: new Date().toISOString(),
+  joinDate: "2026-03-23T04:24:47.000Z", // Fixed date for Match 23, 2569 (CE 2026)
 }
 
 export default function ProfilePage() {
@@ -55,7 +55,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editedProfile, setEditedProfile] = useState<UserProfile>(defaultProfile)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { events, folders } = useCalendarStore()
+  const { events, folders, backgroundImage } = useCalendarStore()
 
   useEffect(() => {
     setIsLoaded(true)
@@ -69,9 +69,25 @@ export default function ProfilePage() {
   }, [])
 
   const handleSave = () => {
-    setProfile(editedProfile)
-    localStorage.setItem("calendar-profile", JSON.stringify(editedProfile))
-    setIsEditing(false)
+    try {
+      setProfile(editedProfile)
+      localStorage.setItem("calendar-profile", JSON.stringify(editedProfile))
+      setIsEditing(false)
+    } catch (err) {
+      console.error("Failed to save profile:", err)
+      // If still fails (rare with compression), try saving without avatar
+      if (err instanceof Error && err.name === "QuotaExceededError") {
+        try {
+          const profileWithoutAvatar = { ...editedProfile, avatar: "" }
+          setProfile(profileWithoutAvatar)
+          localStorage.setItem("calendar-profile", JSON.stringify(profileWithoutAvatar))
+          setIsEditing(false)
+          alert("Profile text saved, but the image is still too large. Please use a smaller image.")
+        } catch (innerErr) {
+          alert("Could not save profile. Your browser storage is full.")
+        }
+      }
+    }
   }
 
   const handleCancel = () => {
@@ -84,26 +100,59 @@ export default function ProfilePage() {
       fileInputRef.current?.click()
     }
   }
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setEditedProfile({ ...editedProfile, avatar: reader.result as string })
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
   const getInitials = (name: string) => {
+    if (!name) return "U"
     return name
       .split(" ")
+      .filter(Boolean)
       .map((n) => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2)
   }
+
+  const compressImage = (base64Str: string, maxWidth = 400, maxHeight = 400): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new window.Image()
+      img.src = base64Str
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width
+            width = maxWidth
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height
+            height = maxHeight
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx?.drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', 0.7))
+      }
+    })
+  }
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string)
+        setEditedProfile({ ...editedProfile, avatar: compressed })
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
 
   // Calculate statistics
   const today = new Date()
@@ -134,8 +183,8 @@ export default function ProfilePage() {
     <div className="relative min-h-screen w-full overflow-hidden">
       {/* Background Image */}
       <Image
-        src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070&auto=format&fit=crop"
-        alt="Beautiful mountain landscape"
+        src={backgroundImage}
+        alt="Background"
         fill
         className="object-cover"
         priority
@@ -171,7 +220,7 @@ export default function ProfilePage() {
               </Button>
               <Button
                 onClick={handleSave}
-                className="bg-blue-500 hover:bg-blue-600 text-white"
+                className="bg-accent-primary hover:opacity-90 transition-all accent-foreground"
               >
                 <Save className="h-4 w-4 mr-2" />
                 Save
@@ -198,7 +247,7 @@ export default function ProfilePage() {
         >
           <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl overflow-hidden">
             {/* Profile Header */}
-            <div className="relative bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 p-8">
+            <div className={`relative bg-accent-primary p-8 accent-foreground transition-all duration-500`}>
               <div className="flex flex-col md:flex-row items-center gap-6">
                 {/* Avatar */}
                 <div className="relative">
@@ -217,7 +266,7 @@ export default function ProfilePage() {
                         className="object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-blue-400 flex items-center justify-center text-white text-4xl font-bold">
+                      <div className="w-full h-full bg-accent-primary flex items-center justify-center accent-foreground text-4xl font-bold opacity-80">
                         {getInitials(isEditing ? editedProfile.name : profile.name)}
                       </div>
                     )}
@@ -289,7 +338,7 @@ export default function ProfilePage() {
                 {/* Contact Information */}
                 <section>
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <User className="h-5 w-5 text-blue-500" />
+                    <User className="h-5 w-5 text-accent-primary" />
                     Contact Information
                   </h3>
                   <div className="space-y-4">
@@ -352,7 +401,7 @@ export default function ProfilePage() {
                           href={profile.website}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline"
+                          className="text-accent-primary hover:underline"
                         >
                           {profile.website}
                         </a>
@@ -388,7 +437,7 @@ export default function ProfilePage() {
                 {/* Recent Activity */}
                 <section>
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-blue-500" />
+                    <Clock className="h-5 w-5 text-accent-primary" />
                     Recent Activity
                   </h3>
                   {recentEvents.length > 0 ? (

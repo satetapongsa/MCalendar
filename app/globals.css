@@ -75,3 +75,18 @@
   animation: fade-in 0.5s ease-out forwards;
 }
 
+.text-accent-primary {
+  color: var(--accent-primary) !important;
+}
+
+.bg-accent-primary {
+  background-color: var(--accent-primary) !important;
+}
+
+.border-accent-primary {
+  border-color: var(--accent-primary) !important;
+}
+
+.accent-foreground {
+  color: var(--accent-foreground) !important;
+}
